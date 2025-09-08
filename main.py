@@ -1,6 +1,5 @@
-from typing import List, Literal, Optional
-from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
+from typing import Optional
+from fastapi import FastAPI, HTTPException
 from cat import Cat
 
 app = FastAPI()
@@ -38,7 +37,7 @@ def update_cat(cat_id: int, cat_for_update: Cat):
 def get_cat_by_id(cat_id: int):
     return cats.get(cat_id, {})
 
-@app.get('/cats/')
+@app.get('/cats')
 def get_cat_by_name(cat_name: Optional[str] = None):
     if cat_name is None:
         return cats
