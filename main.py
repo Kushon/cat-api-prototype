@@ -19,7 +19,7 @@ def delete_cat(cat_id: int):
     if cat_id not in cats:
         raise HTTPException(status_code=404, detail="Cat not found")
     cats.pop(cat_id)
-    return {"Cat deleted"}
+    return {"message": f"Cat with id '{cat_id}' was deleted"}
 
 @app.get("/")
 def get_cats():
