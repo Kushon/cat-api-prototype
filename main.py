@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from cat import Cat
 
 app = FastAPI()
-cats = {}
+cats: dict[int, Cat] = {}
 counter = 0
 
 @app.post("/cats")
@@ -12,7 +12,7 @@ def create_cat(cat: Cat):
     global counter
     counter+= 1
     cats[counter]= cat
-    return {"cat id":counter}
+    return {'id': counter, **cat.model_dump()}
 
 @app.delete("/cats/{cat_id}")
 def delete_cat(cat_id: int):
@@ -29,11 +29,10 @@ def get_cats():
 def update_cat(cat_id: int, cat_for_update: Cat):
     if cat_id not in cats:
         raise HTTPException(status_code=404, detail="Cat not found")
-    cat = Cat.model_validate(cats[cat_id])
+    cat_to_update = cats[cat_id]
     upd_data = cat_for_update.model_dump(exclude_unset=True)
-    upd_cat = cat.model_copy(update=upd_data)
-    cats[cat_id] = upd_cat.model_dump()
-    return {"Cat updated": cats[cat_id]}
+    cats[cat_id] = cat_to_update.model_copy(update=upd_data)
+    return cats[cat_id]
 
 @app.get("/cats/{cat_id}")
 def get_cat_by_id(cat_id: int):
