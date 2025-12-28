@@ -1,8 +1,11 @@
-from pydantic import BaseModel, Field
-from typing import Annotated, Literal
 
-class Cat(BaseModel):
+from typing import Annotated, Literal
+from sqlmodel import Field, SQLModel
+
+
+class Cat(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
     name: str
     age: Annotated[int, Field(gt = 0,lt = 100 )]
     weight: Annotated[float, Field(gt=0, lt = 100)]
-    breed: Literal['fluffy', 'bold', 'blond', 'degbjuklp']
+    breed: str
