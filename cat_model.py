@@ -1,5 +1,5 @@
 
-from typing import Annotated, Literal
+from typing import Annotated
 from sqlmodel import Field, SQLModel
 
 
