@@ -1,0 +1,65 @@
+# External Database Configuration Example
+# Use this when you have an external PostgreSQL database
+
+global:
+  namespace: cat-api-external-db
+  environment: production
+
+catApi:
+  enabled: true
+  
+  image:
+    repository: myregistry.azurecr.io/cat-api
+    tag: v1.0.0
+    pullPolicy: IfNotPresent
+  
+  deployment:
+    replicas: 2
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  service:
+    enabled: true
+    type: ClusterIP
+  
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: api.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+  
+  config:
+    # Point to your external database
+    DB_HOST: "postgres.example.com"
+    DB_PORT: "5432"
+    DB_NAME: cat_api
+  
+  secrets:
+    postgresql:
+      username: cat_api_user
+      password: "YOUR_EXTERNAL_DB_PASSWORD"
+  
+  migration:
+    enabled: true
+
+# Disable PostgreSQL subchart when using external database
+postgres:
+  enabled: false
+
+rbac:
+  create: true
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80

@@ -1,0 +1,37 @@
+1. Get the status of your deployment:
+   kubectl rollout status deployment/{{ include "cat-api.fullname" . }} -n {{ .Values.global.namespace }}
+
+2. Get the application URL:
+{{- if .Values.catApi.ingress.enabled }}
+   http://{{ index .Values.catApi.ingress.hosts 0 "host" }}
+{{- else if contains "NodePort" .Values.catApi.service.type }}
+   export NODE_PORT=$(kubectl get services {{ include "cat-api.fullname" . }} -n {{ .Values.global.namespace }} -o jsonpath='{.spec.ports[0].nodePort}')
+   export NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}')
+   echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.catApi.service.type }}
+   NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+   Watch the status with:
+   kubectl get svc {{ include "cat-api.fullname" . }} -n {{ .Values.global.namespace }} --watch
+{{- else if contains "ClusterIP" .Values.catApi.service.type }}
+   export POD_NAME=$(kubectl get pods -n {{ .Values.global.namespace }} -l "app.kubernetes.io/name={{ include "cat-api.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath='{.items[0].metadata.name}')
+   export CONTAINER_PORT=$(kubectl get pod $POD_NAME -n {{ .Values.global.namespace }} -o jsonpath='{.spec.containers[0].ports[0].containerPort}')
+   echo "Visit http://127.0.0.1:8000 to use your application"
+   kubectl port-forward $POD_NAME 8000:$CONTAINER_PORT -n {{ .Values.global.namespace }}
+{{- end }}
+
+3. PostgreSQL Status:
+{{- if .Values.postgres.enabled }}
+   kubectl get statefulset {{ .Release.Name }}-postgres -n {{ .Values.global.namespace }}
+   kubectl logs -l app=postgres -n {{ .Values.global.namespace }}
+{{- else }}
+   Using external PostgreSQL at: {{ .Values.catApi.config.DB_HOST }}
+{{- end }}
+
+4. View logs:
+   kubectl logs deployment/{{ include "cat-api.fullname" . }} -n {{ .Values.global.namespace }} -f
+
+5. Check migration job status:
+{{- if .Values.catApi.migration.enabled }}
+   kubectl get jobs -n {{ .Values.global.namespace }}
+   kubectl logs job/{{ include "cat-api.fullname" . }}-migration -n {{ .Values.global.namespace }}
+{{- end }}

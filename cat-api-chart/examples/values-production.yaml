@@ -1,0 +1,201 @@
+# Production Configuration Example
+# This values file demonstrates a production-ready setup
+
+global:
+  namespace: cat-api-prod
+  environment: production
+
+catApi:
+  enabled: true
+  
+  image:
+    repository: myregistry.azurecr.io/cat-api
+    tag: v1.0.0
+    pullPolicy: IfNotPresent
+  
+  deployment:
+    replicas: 3
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /ready
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 2
+  
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8000"
+      prometheus.io/path: "/metrics"
+  
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/rewrite-target: /
+    hosts:
+      - host: api.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: cat-api-tls
+        hosts:
+          - api.example.com
+  
+  config:
+    DB_HOST: "cat-api-prod-postgres"
+    DB_PORT: "5432"
+    DB_NAME: cat_api_prod
+  
+  secrets:
+    postgresql:
+      username: cat_api_user
+      password: "CHANGE_ME_IN_PRODUCTION"  # Use external secret management!
+  
+  migration:
+    enabled: true
+    backoffLimit: 3
+    image:
+      repository: myregistry.azurecr.io/cat-api
+      tag: v1.0.0
+      pullPolicy: IfNotPresent
+
+postgres:
+  enabled: true
+  
+  image:
+    repository: postgres
+    tag: "15"
+    pullPolicy: IfNotPresent
+  
+  statefulSet:
+    replicas: 1
+  
+  service:
+    name: postgres-service
+    type: ClusterIP
+    port: 5432
+    clusterIP: None
+  
+  storage:
+    size: 50Gi
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: fast-ssd
+    annotations:
+      volume.beta.kubernetes.io/storage-class: fast-ssd
+  
+  auth:
+    username: cat_api_user
+    password: "CHANGE_ME_IN_PRODUCTION"
+    database: cat_api_prod
+  
+  config:
+    POSTGRES_DB: cat_api_prod
+    PGDATA: /var/lib/postgresql/data/pgdata
+  
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    fsGroup: 999
+  
+  readinessProbe:
+    enabled: true
+    command:
+      - pg_isready
+      - -U
+      - cat_api_user
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/cat-api-role
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector:
+  workload-type: app
+
+tolerations:
+  - key: "workload-type"
+    operator: "Equal"
+    value: "app"
+    effect: "NoSchedule"
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app
+              operator: In
+              values:
+                - cat-api
+        topologyKey: kubernetes.io/hostname
