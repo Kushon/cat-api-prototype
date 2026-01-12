@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Release.Name }}-postgres-config
-  labels:
-    {{- include "postgres.labels" . | nindent 4 }}
-data:
-  POSTGRES_DB: {{ .Values.config.POSTGRES_DB | quote }}
-  PGDATA: {{ .Values.config.PGDATA | quote }}
